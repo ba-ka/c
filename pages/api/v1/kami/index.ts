@@ -162,14 +162,16 @@ export default async function handler( req: NextApiRequest, res: NextApiResponse
             responseStatus.status = 400;
             responseStatus.error.message = 'title, excerpt, content, status, auth is required, please try again';
         }
-    } else if (req.method == "OPTIONS") {
-        res.writeHead(200, {"Content-Type": "application/json"});
-        res.end();
     }
 
     if (responseStatus.status != 200) {
         responseResult.error = responseStatus.error;
     }
 
-    res.status(responseStatus.status).json(responseResult);
+    if (req.method == "OPTIONS") {
+        res.writeHead(200, {"Content-Type": "application/json"});
+        res.end();
+    } else {
+        res.status(responseStatus.status).json(responseResult);
+    }
 }
