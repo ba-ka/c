@@ -66,6 +66,9 @@ export default async function handler( req: NextApiRequest, res: NextApiResponse
         }
     
         res.status(responseStatus.status).json(responseResult);
+    } else if (req.method == "OPTIONS") {
+        res.writeHead(200, {"Content-Type": "application/json"});
+        res.end();
     } else {
         res.status(405).end();
     }
