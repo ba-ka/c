@@ -59,6 +59,7 @@ export default async function handler( req: NextApiRequest, res: NextApiResponse
                 responseResult.title = getKami.title;
                 responseResult.content = getKami.content;
                 responseResult.status = getKami.status;
+                responseResult.author = getKami.author;
                 responseResult.excerpt = getKami.excerpt;
             } else {
                 responseStatus.status = 400;
