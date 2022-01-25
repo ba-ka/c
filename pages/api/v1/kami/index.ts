@@ -130,7 +130,7 @@ export default async function handler( req: NextApiRequest, res: NextApiResponse
             const userSession = await UserSessionModel.findOne({ key: auth, expire_at: { $gte: dateNow } });
             if (userSession) {
                 if (isValidObjectId(id)) {
-                    const updateKami = await KamiModel.updateOne({
+                    const updateKami = await KamiModel.findOneAndUpdate({
                         _id: id,
                         author: userSession.user
                     },
@@ -140,15 +140,20 @@ export default async function handler( req: NextApiRequest, res: NextApiResponse
                         content: content,
                         status: status,
                         update_at: dateNow
+                    },
+                    {
+                        new: true // or returnOriginal: false
                     });
                     
-                    if (updateKami.modifiedCount > 0) {
+                    if (updateKami) {
                         responseStatus.status = 200;
-                        responseResult.id = id;
-                        responseResult.title = title;
-                        responseResult.excerpt = excerpt;
-                        responseResult.content = content;
-                        responseResult.status = status;
+                        responseResult.id = updateKami._id;
+                        responseResult.title = updateKami.title;
+                        responseResult.excerpt = updateKami.excerpt;
+                        responseResult.content = updateKami.content;
+                        responseResult.status = updateKami.status;
+                        responseResult.update_at = updateKami.update_at;
+                        responseResult.create_at = updateKami.create_at;
                     }
                 } else {
                     responseStatus.status = 400;
