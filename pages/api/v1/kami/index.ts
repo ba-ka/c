@@ -20,6 +20,51 @@ export default async function handler( req: NextApiRequest, res: NextApiResponse
     let isLoggedIn = false;
 	let idLogin;
 
+    function safeData(getKami: any) {
+        let newKami: any = [];
+		
+        for (let i = 0; i < getKami.length; i++) {
+            const tempAuthor: any = {
+                id: getKami[i].author._id,
+                username: getKami[i].author.username
+            }
+
+            const tempData = {
+                id: getKami[i]._id,
+                title: getKami[i].title,
+                excerpt: getKami[i].excerpt,
+                status: getKami[i].status,
+                update_at: getKami[i].update_at,
+                create_at: getKami[i].create_at,
+                author: tempAuthor
+            }
+
+            newKami.push(tempData);
+        }
+
+        return newKami;
+    }
+
+    function safeDataSingle(getKami: any) {
+        const tempAuthor: any = {
+            id: getKami.author._id,
+            username: getKami.author.username
+        }
+
+        const tempData = {
+            id: getKami._id,
+            title: getKami.title,
+            excerpt: getKami.excerpt,
+            content: getKami.content,
+            status: getKami.status,
+            update_at: getKami.update_at,
+            create_at: getKami.create_at,
+            author: tempAuthor
+        }
+
+        return tempData;
+    }
+
     await dbConnect();
 
 	if (auth) {
@@ -32,21 +77,23 @@ export default async function handler( req: NextApiRequest, res: NextApiResponse
 
     if (req.method === 'GET') {
         const username: string = req.query.username as string;
+        const userid: string = req.query.userid as string;
 	    const kamiId: string = req.query.id as string;
 
         if (kamiId) {
             let getKami: any;
             if (isValidObjectId(kamiId)) {
                 if(isLoggedIn) {
-                    getKami = await KamiModel.findOne({ $or:[ {'status': 'public'}, {'status': 'unlist'}, {'status': 'profile'}, {'status': 'private'} ], $and: [{ _id: kamiId }, { author: idLogin }]} );
+                    getKami = await KamiModel.findOne({ $or:[ {'status': 'public'}, {'status': 'unlist'}, {'status': 'profile'}, {'status': 'private'} ], $and: [{ _id: kamiId }, { author: idLogin }]} ).populate('author');
                 } else {
-                    getKami = await KamiModel.findOne({ $or: [{'status': 'public'}, {'status': 'profile'}, {'status': 'unlist'}], $and: [{_id: kamiId}]}).orFail().catch( () => { console.log('your document not found') }).then();
+                    getKami = await KamiModel.findOne({ $or: [{'status': 'public'}, {'status': 'profile'}, {'status': 'unlist'}], $and: [{_id: kamiId}]}).populate('author');
                 }
                 
             }
             if (getKami) {
+                getKami = safeDataSingle(getKami);
                 responseStatus.status = 200;
-                responseResult.id = getKami._id;
+                responseResult.id = getKami.id;
                 responseResult.title = getKami.title;
                 responseResult.content = getKami.content;
                 responseResult.status = getKami.status;
@@ -56,32 +103,49 @@ export default async function handler( req: NextApiRequest, res: NextApiResponse
                 responseStatus.status = 400;
                 responseStatus.error.message = 'kami not found';
             }
+        } else if (userid) {
+            const getUser = await UserModel.findOne({ _id: userid });
+            if (getUser) {
+                let getKami: any;
+                
+                if(isLoggedIn && idLogin == getUser._id.toString()) {
+                    getKami = await KamiModel.find({ $or:[ {'status': 'public'}, {'status': 'unlist'}, {'status': 'profile'}, {'status': 'private'} ], $and: [{ author: getUser._id }]} ).populate('author');
+                } else {
+                    getKami = await KamiModel.find({ $or:[ {'status': 'public'}, {'status': 'profile'} ], $and: [{ author: getUser._id }]} ).populate('author');
+                }
+
+                if (getKami) {
+                    responseStatus.status = 200;
+                    responseResult.row = safeData(getKami);
+                } else {
+                    responseStatus.status = 400;
+                    responseStatus.error.message = 'kami not found';
+                }
+            }
         } else if (username) {
             const getUser = await UserModel.findOne({ username: username });
             if (getUser) {
                 let getKami: any;
                 
-                if(isLoggedIn) {
-                    if (idLogin == getUser._id.toString()) {
-                        getKami = await KamiModel.find({ $or:[ {'status': 'public'}, {'status': 'unlist'}, {'status': 'profile'}, {'status': 'private'} ], $and: [{ author: getUser._id }]} );
-                    }
+                if(isLoggedIn && idLogin == getUser._id.toString()) {
+                    getKami = await KamiModel.find({ $or:[ {'status': 'public'}, {'status': 'unlist'}, {'status': 'profile'}, {'status': 'private'} ], $and: [{ author: getUser._id }]} ).populate('author');
                 } else {
-                    getKami = await KamiModel.find({ $or:[ {'status': 'public'}, {'status': 'profile'} ], $and: [{ author: getUser._id }]} );
+                    getKami = await KamiModel.find({ $or:[ {'status': 'public'}, {'status': 'profile'} ], $and: [{ author: getUser._id }]} ).populate('author');
                 }
                 
                 if (getKami) {
                     responseStatus.status = 200;
-                    responseResult.row = getKami;
+                    responseResult.row = safeData(getKami);
                 } else {
                     responseStatus.status = 400;
                     responseStatus.error.message = 'kami not found';
                 }
             }
         } else {
-            const getKami: any = await KamiModel.find({ status: 'public' });
+            const getKami: any = await KamiModel.find({ status: 'public' }).populate('author');
             if (getKami) {
                 responseStatus.status = 200;
-                responseResult.row = getKami;
+                responseResult.row = safeData(getKami);
             } else {
                 responseStatus.status = 400;
                 responseStatus.error.message = 'kami not found';
