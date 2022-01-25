@@ -41,7 +41,7 @@ export default async function handler( req: NextApiRequest, res: NextApiResponse
                     
                     if (createUserSession) {
                         responseStatus.status = 200;
-                        responseResult.user_id = getUser._id;
+                        responseResult.id = getUser._id;
                         responseResult.username = getUser.username;
                         responseResult.avatar = getUser.avatar;
                         responseResult.auth = createUserSession.key;
