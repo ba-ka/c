@@ -4,16 +4,7 @@ import getDate from '../../../../lib/date';
 import UserModel from '../../../../models/user';
 import UserSessionModel from '../../../../models/user/session';
 import KamiModel from '../../../../models/kami';
-import { Types } from 'mongoose';
-
-function isValidObjectId(id: string){
-    if(Types.ObjectId.isValid(id)){
-        if((String)(new Types.ObjectId(id)) === id)
-            return true;        
-        return false;
-    }
-    return false;
-}
+import { isValidObjectId } from '../../../../lib/util';
 
 export default async function handler( req: NextApiRequest, res: NextApiResponse ) {
     const auth: string = req.query.auth as string;
@@ -136,24 +127,31 @@ export default async function handler( req: NextApiRequest, res: NextApiResponse
         if (id && title && excerpt && status && content && auth) {
             const userSession = await UserSessionModel.findOne({ key: auth, expire_at: { $gte: dateNow } });
             if (userSession) {
-                const updateKami = await KamiModel.updateOne({
-                    _id: id
-                },{
-                    title: title,
-                    excerpt: excerpt,
-                    content: content,
-                    status: status,
-                    update_at: dateNow
-                }).then((result) => {
-                    responseStatus.status = 200;
-                    responseResult.id = id;
-                    responseResult.title = title;
-                    responseResult.excerpt = excerpt;
-                    responseResult.content = content;
-                    responseResult.status = status;
-                }).catch((error) => {
-                    console.log(error.Message);
-                });
+                if (isValidObjectId(id)) {
+                    const updateKami = await KamiModel.updateOne({
+                        _id: id,
+                        author: userSession.user
+                    },
+                    {
+                        title: title,
+                        excerpt: excerpt,
+                        content: content,
+                        status: status,
+                        update_at: dateNow
+                    });
+                    
+                    if (updateKami.modifiedCount > 0) {
+                        responseStatus.status = 200;
+                        responseResult.id = id;
+                        responseResult.title = title;
+                        responseResult.excerpt = excerpt;
+                        responseResult.content = content;
+                        responseResult.status = status;
+                    }
+                } else {
+                    responseStatus.status = 400;
+                    responseStatus.error.message = 'kami not found';
+                }
             } else {
                 responseStatus.status = 401;
                 responseStatus.error.message = 'auth not valid or expired';
