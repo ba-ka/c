@@ -111,6 +111,8 @@ export default async function handler( req: NextApiRequest, res: NextApiResponse
                     responseResult.excerpt = createKami.excerpt;
                     responseResult.content = createKami.content;
                     responseResult.status = createKami.status;
+                    responseResult.update_at = dateNow;
+                    responseResult.create_at = dateNow;
                 }
             } else {
                 responseStatus.status = 401;
