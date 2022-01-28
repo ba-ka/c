@@ -100,6 +100,8 @@ export default async function handler( req: NextApiRequest, res: NextApiResponse
                 responseResult.status = getKami.status;
                 responseResult.author = getKami.author;
                 responseResult.excerpt = getKami.excerpt;
+                responseResult.update_at = getKami.update_at;
+                responseResult.create_at = getKami.create_at;
             } else {
                 responseStatus.status = 400;
                 responseStatus.error.message = 'kami not found';
