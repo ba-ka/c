@@ -85,10 +85,11 @@ export default async function handler( req: NextApiRequest, res: NextApiResponse
             if (isValidObjectId(kamiId)) {
                 if(isLoggedIn) {
                     getKami = await KamiModel.findOne({ $or:[ {'status': 'public'}, {'status': 'unlist'}, {'status': 'profile'}, {'status': 'private'} ], $and: [{ _id: kamiId }, { author: idLogin }]} ).populate('author');
-                } else {
-                    getKami = await KamiModel.findOne({ $or: [{'status': 'public'}, {'status': 'profile'}, {'status': 'unlist'}], $and: [{_id: kamiId}]}).populate('author');
                 }
                 
+                if (!getKami) {
+                    getKami = await KamiModel.findOne({ $or: [{'status': 'public'}, {'status': 'profile'}, {'status': 'unlist'}], $and: [{_id: kamiId}]}).populate('author');
+                }
             }
             if (getKami) {
                 getKami = safeDataSingle(getKami);
